@@ -1,4 +1,7 @@
+import json
+
 EPSILON = 1e-9  # 이 값보다 차이가 작으면 동점으로 본다
+DATA_FILE = "data.json"
 
 
 def mac(pattern, filter_):
@@ -83,6 +86,147 @@ def run_mode1():
         print("판정:", result)
 
 
+def normalize_label(label):
+    """여러 표기('+', 'cross', 'x' 등)를 표준 라벨 Cross / X로 바꾼다. 모르는 값이면 None."""
+    text = str(label).strip().lower()
+    if text in ("+", "cross"):
+        return "Cross"
+    if text == "x":
+        return "X"
+    return None
+
+
+def load_json(path):
+    """JSON 파일을 읽어 돌려준다. 실패하면 이유를 출력하고 None."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"✗ 파일을 찾을 수 없습니다: {path}")
+    except json.JSONDecodeError as e:
+        print(f"✗ JSON 형식 오류: {e}")
+    return None
+
+
+def load_filters(data):
+    """filters 부분을 읽어 {'size_5': {'Cross': 배열, 'X': 배열}, ...} 형태로 만든다."""
+    filters = {}
+    for size_key, raw in data.get("filters", {}).items():
+        pair = {}
+        for name, matrix in raw.items():
+            label = normalize_label(name)
+            if label is not None:
+                pair[label] = matrix
+        if "Cross" in pair and "X" in pair:
+            filters[size_key] = pair
+            print(f"✓ {size_key} 필터 로드 완료 (Cross, X)")
+        else:
+            print(f"✗ {size_key} 필터 로드 실패: cross / x 중 빠진 것이 있음")
+    return filters
+
+
+def get_size_from_key(key):
+    """'size_13_2' 같은 키에서 13을 꺼낸다. 형식이 틀리면 None."""
+    parts = key.split("_")
+    if len(parts) != 3 or parts[0] != "size":
+        return None
+    try:
+        return int(parts[1])
+    except ValueError:
+        return None
+
+
+def is_square(matrix, n):
+    """matrix가 정확히 n x n 인지 확인한다."""
+    if not isinstance(matrix, list) or len(matrix) != n:
+        return False
+    for row in matrix:
+        if not isinstance(row, list) or len(row) != n:
+            return False
+    return True
+
+
+def fail(reason):
+    """검증 실패를 출력하고 (False, 이유)를 돌려준다."""
+    print(f"FAIL: {reason}")
+    return False, reason
+
+
+def analyze_case(key, case, filters):
+    """패턴 1개를 판정한다. (PASS 여부, 실패 이유)를 돌려준다."""
+    print(f"--- {key} ---")
+
+    n = get_size_from_key(key)
+    if n is None:
+        return fail("키 형식 오류 (size_N_번호 형태가 아님)")
+
+    pair = filters.get(f"size_{n}")
+    if pair is None:
+        return fail(f"size_{n} 필터가 없음")
+
+    expected = normalize_label(case.get("expected", ""))
+    if expected is None:
+        return fail(f"expected 라벨을 해석할 수 없음: {case.get('expected')}")
+
+    pattern = case.get("input")
+    if not is_square(pattern, n):
+        return fail(f"패턴 크기 불일치 ({n}x{n}이 아님)")
+    if not is_square(pair["Cross"], n) or not is_square(pair["X"], n):
+        return fail(f"필터 크기 불일치 ({n}x{n}이 아님)")
+
+    score_cross = mac(pattern, pair["Cross"])
+    score_x = mac(pattern, pair["X"])
+    result = judge(score_cross, score_x, "Cross", "X")
+
+    print("Cross 점수:", score_cross)
+    print("X 점수:", score_x)
+
+    if result == expected:
+        print(f"판정: {result} | expected: {expected} | PASS")
+        return True, ""
+    if result == "UNDECIDED":
+        reason = "동점(UNDECIDED) 처리 규칙에 따라 FAIL"
+    else:
+        reason = f"판정 {result}이(가) expected {expected}와 다름"
+    print(f"판정: {result} | expected: {expected} | FAIL ({reason})")
+    return False, reason
+
+
+def run_mode2():
+    """모드 2: data.json의 패턴을 모두 판정하고 결과를 요약한다."""
+    print("\n#---------------------------------------")
+    print("# [1] 필터 로드")
+    print("#---------------------------------------")
+    data = load_json(DATA_FILE)
+    if data is None:
+        return
+    filters = load_filters(data)
+
+    print("\n#---------------------------------------")
+    print("# [2] 패턴 분석 (라벨 정규화 적용)")
+    print("#---------------------------------------")
+    total = 0
+    passed = 0
+    failures = []
+    for key, case in data.get("patterns", {}).items():
+        total += 1
+        ok, reason = analyze_case(key, case, filters)
+        if ok:
+            passed += 1
+        else:
+            failures.append((key, reason))
+
+    print("\n#---------------------------------------")
+    print("# [4] 결과 요약")
+    print("#---------------------------------------")
+    print(f"총 테스트: {total}개")
+    print(f"통과: {passed}개")
+    print(f"실패: {len(failures)}개")
+    if failures:
+        print("\n실패 케이스:")
+        for key, reason in failures:
+            print(f"- {key}: {reason}")
+
 def main():
     """프로그램 시작점: 모드를 선택한다."""
     print("=== Mini NPU Simulator ===")
@@ -96,7 +240,7 @@ def main():
             run_mode1()
             break
         elif choice == "2":
-            print("data.json 분석은 준비 중입니다.")
+            run_mode2()
             break
         else:
             print("1 또는 2를 입력하세요.")
