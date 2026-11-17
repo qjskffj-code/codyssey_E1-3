@@ -1,7 +1,9 @@
 import json
+import time
 
 EPSILON = 1e-9  # 이 값보다 차이가 작으면 동점으로 본다
 DATA_FILE = "data.json"
+REPEAT = 10     # 성능 측정 반복 횟수
 
 
 def mac(pattern, filter_):
@@ -21,6 +23,56 @@ def judge(score_a, score_b, label_a, label_b):
     if score_a > score_b:
         return label_a
     return label_b
+
+def measure_mac_ms(pattern, filter_, repeat=REPEAT):
+    """mac을 repeat번 실행해 1회 평균 시간(ms)을 돌려준다."""
+    start = time.perf_counter()
+    for _ in range(repeat):
+        mac(pattern, filter_)
+    end = time.perf_counter()
+    return (end - start) * 1000 / repeat
+
+
+def make_cross(n):
+    """n x n 십자가 패턴을 만든다. (가운데 줄과 가운데 칸이 1)"""
+    mid = n // 2
+    matrix = []
+    for i in range(n):
+        row = []
+        for j in range(n):
+            if i == mid or j == mid:
+                row.append(1.0)
+            else:
+                row.append(0.0)
+        matrix.append(row)
+    return matrix
+
+
+def make_x(n):
+    """n x n X 패턴을 만든다. (두 대각선이 1)"""
+    matrix = []
+    for i in range(n):
+        row = []
+        for j in range(n):
+            if i == j or i + j == n - 1:
+                row.append(1.0)
+            else:
+                row.append(0.0)
+        matrix.append(row)
+    return matrix
+
+
+def print_performance(sizes):
+    """크기별 MAC 평균 시간과 연산 횟수(N²) 표를 출력한다."""
+    print("\n#---------------------------------------")
+    print(f"# [3] 성능 분석 (평균/{REPEAT}회)")
+    print("#---------------------------------------")
+    print("크기        평균 시간(ms)    연산 횟수(N²)")
+    print("-" * 42)
+    for n in sizes:
+        ms = measure_mac_ms(make_cross(n), make_x(n))
+        size_text = f"{n}×{n}"
+        print(f"{size_text:<10}{ms:>14.4f}{n * n:>14}")
 
 def read_matrix(name, n=3):
     """n줄을 입력받아 n x n 배열로 돌려준다. 형식이 틀린 줄은 다시 입력받는다."""
@@ -84,6 +136,7 @@ def run_mode1():
         print(f"판정: 판정 불가 (|A-B| < {EPSILON})")
     else:
         print("판정:", result)
+    print_performance([3])
 
 
 def normalize_label(label):
@@ -215,6 +268,8 @@ def run_mode2():
             passed += 1
         else:
             failures.append((key, reason))
+            
+    print_performance([3, 5, 13, 25])
 
     print("\n#---------------------------------------")
     print("# [4] 결과 요약")
