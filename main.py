@@ -19,13 +19,30 @@ def judge(score_a, score_b, label_a, label_b):
         return label_a
     return label_b
 
+def read_matrix(name, n=3):
+    """n줄을 입력받아 n x n 배열로 돌려준다. 형식이 틀린 줄은 다시 입력받는다."""
+    print(f"{name} ({n}줄 입력, 공백 구분)")
+    matrix = []
+    while len(matrix) < n:
+        line = input()
+        parts = line.split()
+
+        if len(parts) != n:
+            print(f"입력 형식 오류: 각 줄에 {n}개의 숫자를 공백으로 구분해 입력하세요.")
+            continue
+
+        try:
+            row = []
+            for p in parts:
+                row.append(float(p))
+        except ValueError:
+            print("입력 형식 오류: 숫자만 입력하세요. (예: 0 1 0)")
+            continue
+
+        matrix.append(row)
+    return matrix
+
 
 # ---- 테스트 ----
-print(judge(5.0, 1.0, "Cross", "X"))            # Cross가 큼
-print(judge(1.0, 5.0, "Cross", "X"))            # X가 큼
-
-score_cross = 0.9
-score_x = 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1 + 0.1
-print("X 점수:", score_x)
-print("그냥 비교:", score_cross > score_x)       # 엡실론 없이 비교하면?
-print(judge(score_cross, score_x, "Cross", "X"))  # 엡실론으로 비교하면?
+filter_a = read_matrix("필터 A")
+print("저장된 필터 A:", filter_a)
