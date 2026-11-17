@@ -43,6 +43,64 @@ def read_matrix(name, n=3):
     return matrix
 
 
-# ---- 테스트 ----
-filter_a = read_matrix("필터 A")
-print("저장된 필터 A:", filter_a)
+def print_matrix(matrix):
+    """배열을 한 줄씩 보기 좋게 출력한다."""
+    for row in matrix:
+        print("  ", row)
+
+
+def run_mode1():
+    """모드 1: 3x3 필터 2개와 패턴을 직접 입력받아 판정한다."""
+    print("\n#---------------------------------------")
+    print("# [1] 필터 입력")
+    print("#---------------------------------------")
+    filter_a = read_matrix("필터 A")
+    filter_b = read_matrix("필터 B")
+
+    print("\n✓ 필터 저장 완료")
+    print("필터 A:")
+    print_matrix(filter_a)
+    print("필터 B:")
+    print_matrix(filter_b)
+
+    print("\n#---------------------------------------")
+    print("# [2] 패턴 입력")
+    print("#---------------------------------------")
+    pattern = read_matrix("패턴")
+
+    score_a = mac(pattern, filter_a)
+    score_b = mac(pattern, filter_b)
+    result = judge(score_a, score_b, "A", "B")
+
+    print("\n#---------------------------------------")
+    print("# [3] MAC 결과")
+    print("#---------------------------------------")
+    print("A 점수:", score_a)
+    print("B 점수:", score_b)
+    if result == "UNDECIDED":
+        print(f"판정: 판정 불가 (|A-B| < {EPSILON})")
+    else:
+        print("판정:", result)
+
+
+def main():
+    """프로그램 시작점: 모드를 선택한다."""
+    print("=== Mini NPU Simulator ===")
+    while True:
+        print("\n[모드 선택]")
+        print("1. 사용자 입력 (3x3)")
+        print("2. data.json 분석")
+        choice = input("선택: ").strip()
+
+        if choice == "1":
+            run_mode1()
+            break
+        elif choice == "2":
+            print("data.json 분석은 준비 중입니다.")
+            break
+        else:
+            print("1 또는 2를 입력하세요.")
+
+
+if __name__ == "__main__":
+    main()
