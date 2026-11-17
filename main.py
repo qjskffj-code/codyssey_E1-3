@@ -24,7 +24,7 @@ def read_matrix(name, n=3):
     print(f"{name} ({n}줄 입력, 공백 구분)")
     matrix = []
     while len(matrix) < n:
-        line = input()
+        line = input(f"  {len(matrix) + 1}번째 줄: ")
         parts = line.split()
 
         if len(parts) != n:
